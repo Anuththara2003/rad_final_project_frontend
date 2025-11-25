@@ -14,19 +14,32 @@ const Login = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
+
       const data = await response.json();
+      
+      // Console එකේ බලන්න දත්ත එන විදිය (Testing වලට)
+      console.log("Login Response Data:", data); 
 
       if (response.ok) {
         localStorage.setItem('user', JSON.stringify(data.user));
-        if (data.user.role === 'admin') navigate('/admin-dashboard');
-        else navigate('/');
+
+        // Role එක check කරන තැන
+        if (data.user.role.toUpperCase() === 'ADMIN') {
+            console.log("Redirecting to Admin Dashboard...");
+            navigate('/admin-dashboard'); 
+        } else {
+            console.log("Redirecting to User Dashboard...");
+            // මෙතන කලින් තිබ්බේ '/' වෙන්න ඇති. ඒක '/dashboard' කරන්න.
+            navigate('/dashboard'); 
+        }
+
       } else {
         alert(data.message || "Login failed");
       }
     } catch (error) {
       console.error("Error:", error);
     }
-  };
+};
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-[url('https://images.unsplash.com/photo-1513885535751-8b9238bd345a?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center">
