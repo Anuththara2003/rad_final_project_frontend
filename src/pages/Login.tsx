@@ -1,41 +1,76 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { loginUser } from '../services/auth';
+import { getMyDetails } from '../services/user';
+import { useAuth } from '../context/authContex';
 
 const Login = () => {
+  const { user, setUser } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      const response = await fetch('http://localhost:5000/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
 
-      const data = await response.json();
+        if (!email || !password) {
+          alert('Please fill in all fields!');
+            return;
+        }
+
+
+     try {
       
-      // Console එකේ බලන්න දත්ත එන විදිය (Testing වලට)
-      console.log("Login Response Data:", data); 
+            const res: any = await loginUser( email,password );
 
-      if (response.ok) {
-        localStorage.setItem('user', JSON.stringify(data.user));
+            await localStorage.setItem("accessToken", res.data.accessToken);
+            await localStorage.setItem("refreshToken", res.data.refreshToken);
 
-        // Role එක check කරන තැන
-        if (data.user.role.toUpperCase() === 'ADMIN') {
+            const details = await getMyDetails();
+
+            setUser(details.data);
+            console.log(user);
+
+            alert('User logged in successfully!');
+
+
+         if (res.data.role == 'ADMIN') {
             console.log("Redirecting to Admin Dashboard...");
             navigate('/admin-dashboard'); 
         } else {
             console.log("Redirecting to User Dashboard...");
-            // මෙතන කලින් තිබ්බේ '/' වෙන්න ඇති. ඒක '/dashboard' කරන්න.
             navigate('/dashboard'); 
         }
 
-      } else {
-        alert(data.message || "Login failed");
-      }
+
+
+    //   const response = await fetch('http://localhost:5000/api/auth/login', {
+    //     method: 'POST',
+    //     headers: { 'Content-Type': 'application/json' },
+    //     body: JSON.stringify({ email, password }),
+    //   });
+
+    //   const data = await response.json();
+      
+    //   // Console එකේ බලන්න දත්ත එන විදිය (Testing වලට)
+    //   console.log("Login Response Data:", data); 
+
+    //   if (response.ok) {
+    //     localStorage.setItem('user', JSON.stringify(data.user));
+
+    //     // Role එක check කරන තැන
+    //     if (data.user.role == 'ADMIN') {
+    //         console.log("Redirecting to Admin Dashboard...");
+    //         navigate('/admin-dashboard'); 
+    //     } else {
+    //         console.log("Redirecting to User Dashboard...");
+    //         // මෙතන කලින් තිබ්බේ '/' වෙන්න ඇති. ඒක '/dashboard' කරන්න.
+    //         navigate('/dashboard'); 
+    //     }
+
+    //   } else {
+    //     alert(data.message || "Login failed");
+    //   }
     } catch (error) {
       console.error("Error:", error);
     }

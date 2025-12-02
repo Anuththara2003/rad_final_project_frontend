@@ -1,5 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+// Service Functions Import කරගන්න
+import { 
+  getAllProducts, createProduct, updateProduct, deleteProduct,
+  getAllOrders, 
+  getAllUsers, removeUser,
+  getDashboardStats, 
+  updateOrderStatus
+} from '../../services/adminService';
 
 // Types Definitions
 interface Product { _id: string; name: string; category: string; price: number; tags: string[]; stock: number; image: string; }
@@ -15,8 +23,8 @@ const AdminDashboard = () => {
   
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
-  const [users, setUsers] = useState<User[]>([]); // New: Users State
-  const [stats, setStats] = useState<Stats>({ totalProducts: 0, totalUsers: 0, pendingOrders: 0, totalRevenue: 0 }); // New: Stats State
+  const [users, setUsers] = useState<User[]>([]);
+  const [stats, setStats] = useState<Stats>({ totalProducts: 0, totalUsers: 0, pendingOrders: 0, totalRevenue: 0 });
   
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -26,18 +34,34 @@ const AdminDashboard = () => {
     name: '', category: '', price: '', tags: '', stock: '', image: ''
   });
 
-  // ================= API CALLS =================
+  // ================= DATA FETCHING (USING SERVICES) =================
   const fetchProducts = async () => {
-    try { const res = await fetch('http://localhost:5000/api/products'); setProducts(await res.json()); } catch (e) { console.error(e); }
+    try {
+      const res = await getAllProducts();
+      setProducts(res.data);
+    } catch (e) { console.error("Error fetching products:", e); }
   };
+
   const fetchOrders = async () => {
-    try { const res = await fetch('http://localhost:5000/api/orders'); setOrders(await res.json()); } catch (e) { console.error(e); }
+    try {
+      const res = await getAllOrders();
+      setOrders(res.data);
+    } catch (e) { console.error("Error fetching orders:", e); }
   };
+
   const fetchUsers = async () => {
-    try { const res = await fetch('http://localhost:5000/api/users'); setUsers(await res.json()); } catch (e) { console.error(e); }
+    try {
+      const res = await getAllUsers();
+      setUsers(res.data);
+    } catch (e) { console.error("Error fetching users:", e); }
   };
+
   const fetchStats = async () => {
-    try { const res = await fetch('http://localhost:5000/api/stats'); setStats(await res.json()); } catch (e) { console.error(e); }
+    try {
+      const res = await getDashboardStats();
+      setStats(res.data);
+      console.log(res.data);
+    } catch (e) { console.error("Error fetching stats:", e); }
   };
 
   useEffect(() => {
@@ -54,19 +78,26 @@ const AdminDashboard = () => {
     const payload = { ...formData, price: Number(formData.price), stock: Number(formData.stock), tags: formattedTags };
 
     try {
-      let url = 'http://localhost:5000/api/products';
-      let method = 'POST';
-      if (editingId) { url = `http://localhost:5000/api/products/${editingId}`; method = 'PUT'; }
-
-      const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-      if (res.ok) { alert(editingId ? "Updated!" : "Added!"); closeModal(); fetchProducts(); }
-    } catch (error) { console.error(error); }
+      if (editingId) {
+        // Update Product Service
+        await updateProduct(editingId, payload);
+        alert("Product Updated! 🔄");
+      } else {
+        // Add Product Service
+        await createProduct(payload);
+        alert("Product Added! 🎉");
+      }
+      closeModal(); 
+      fetchProducts();
+    } catch (error) { console.error("Product Error:", error); }
   };
 
   const handleDeleteProduct = async (id: string) => {
     if(!confirm("Are you sure?")) return;
-    await fetch(`http://localhost:5000/api/products/${id}`, { method: 'DELETE' });
-    fetchProducts();
+    try {
+        await deleteProduct(id);
+        fetchProducts();
+    } catch (error) { console.error(error); }
   };
 
   const handleEditClick = (product: Product) => {
@@ -76,25 +107,25 @@ const AdminDashboard = () => {
   };
 
   // ================= HANDLERS (ORDERS & USERS) =================
-  const updateOrderStatus = async (id: string, newStatus: string) => {
+  const handleUpdateOrderStatus = async (id: string, newStatus: string) => {
     try {
-      const res = await fetch(`http://localhost:5000/api/orders/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus })
-      });
-      if (res.ok) { alert("Order Status Updated!"); fetchOrders(); setSelectedOrder(null); }
+      await updateOrderStatus(id, newStatus);
+      alert("Order Status Updated!"); 
+      fetchOrders(); 
+      setSelectedOrder(null);
     } catch (error) { console.error(error); }
   };
 
   const handleDeleteUser = async (id: string) => {
     if(!confirm("Delete this user?")) return;
-    await fetch(`http://localhost:5000/api/users/${id}`, { method: 'DELETE' });
-    fetchUsers();
+    try {
+        await removeUser(id);
+        fetchUsers();
+    } catch (error) { console.error(error); }
   };
 
   const closeModal = () => { setShowModal(false); setEditingId(null); setFormData({ name: '', category: '', price: '', tags: '', stock: '', image: '' }); };
-  const handleLogout = () => { localStorage.removeItem('user'); navigate('/login'); };
+  const handleLogout = () => { localStorage.removeItem('user'); localStorage.removeItem('accessToken'); navigate('/login'); };
 
   return (
     <div className="min-h-screen flex bg-gray-900 text-white font-sans">
@@ -124,12 +155,10 @@ const AdminDashboard = () => {
       {/* Main Content */}
       <main className="flex-1 p-8 ml-64 overflow-y-auto">
         
-        {/* ================= DASHBOARD OVERVIEW (UPDATED) ================= */}
+        {/* ================= DASHBOARD OVERVIEW ================= */}
         {activeTab === 'dashboard' && (
           <div className="animate-fade-in">
             <h1 className="text-3xl font-bold mb-8">Dashboard Overview</h1>
-            
-            {/* 1. Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
               <div className="bg-gray-800 p-6 rounded-xl border border-gray-700 shadow-lg">
                 <h3 className="text-gray-400 text-xs uppercase font-bold">Total Revenue</h3>
@@ -149,10 +178,7 @@ const AdminDashboard = () => {
               </div>
             </div>
 
-            {/* 2. Recent Orders & Activity Feed (To fill whitespace) */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              
-              {/* Recent Orders Table */}
               <div className="lg:col-span-2 bg-gray-800 rounded-xl border border-gray-700 p-6 shadow-lg">
                 <div className="flex justify-between items-center mb-6">
                   <h3 className="text-xl font-bold text-white">Recent Orders</h3>
@@ -180,37 +206,37 @@ const AdminDashboard = () => {
                   </table>
                 </div>
               </div>
-
-              {/* Activity Feed (Simulated) */}
-              <div className="bg-gray-800 rounded-xl border border-gray-700 p-6 shadow-lg">
-                <h3 className="text-xl font-bold text-white mb-6">Recent Activity</h3>
-                <div className="space-y-6 border-l-2 border-gray-700 ml-3 pl-6 relative">
-                  <div className="relative">
-                    <span className="absolute -left-[2.3rem] top-1 w-4 h-4 rounded-full bg-green-500 border-2 border-gray-900"></span>
-                    <p className="text-xs text-gray-500 mb-1">10 mins ago</p>
-                    <h4 className="text-sm font-bold text-white">New Order Received</h4>
-                    <p className="text-xs text-gray-400">Check Customer Orders.</p>
-                  </div>
-                  <div className="relative">
-                    <span className="absolute -left-[2.3rem] top-1 w-4 h-4 rounded-full bg-blue-500 border-2 border-gray-900"></span>
-                    <p className="text-xs text-gray-500 mb-1">1 hour ago</p>
-                    <h4 className="text-sm font-bold text-white">New User Registered</h4>
-                    <p className="text-xs text-gray-400">Welcome a new member!</p>
-                  </div>
-                  <div className="relative">
-                    <span className="absolute -left-[2.3rem] top-1 w-4 h-4 rounded-full bg-purple-500 border-2 border-gray-900"></span>
-                    <p className="text-xs text-gray-500 mb-1">Yesterday</p>
-                    <h4 className="text-sm font-bold text-white">System Check</h4>
-                    <p className="text-xs text-gray-400">Database backup completed.</p>
-                  </div>
-                </div>
-              </div>
-
             </div>
           </div>
         )}
 
-        {/* ================= PRODUCTS VIEW (EXISTING UI) ================= */}
+        {/* ================= USERS VIEW ================= */}
+        {activeTab === 'users' && (
+          <>
+            <h1 className="text-3xl font-bold mb-8">Registered Users</h1>
+            <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden shadow-xl">
+              <table className="w-full text-left">
+                <thead className="bg-gray-900/50 text-gray-400 text-xs uppercase border-b border-gray-700">
+                  <tr><th className="py-4 px-6">Name</th><th className="py-4 px-6">Email</th><th className="py-4 px-6">Role</th><th className="py-4 px-6 text-center">Action</th></tr>
+                </thead>
+                <tbody className="divide-y divide-gray-700 text-gray-300">
+                  {users.map(user => (
+                    <tr key={user._id} className="hover:bg-gray-700/50">
+                      <td className="py-4 px-6 font-bold">{user.username}</td>
+                      <td className="py-4 px-6">{user.email}</td>
+                      <td className="py-4 px-6"><span className={`px-2 py-1 rounded text-xs ${user.role === 'ADMIN' || user.role === 'admin' ? 'bg-red-500/20 text-red-400' : 'bg-blue-500/20 text-blue-400'}`}>{user.role}</span></td>
+                      <td className="py-4 px-6 text-center">
+                        <button onClick={() => handleDeleteUser(user._id)} className="text-red-400 hover:text-white text-xs font-bold border border-red-500/30 px-3 py-1 rounded hover:bg-red-600 transition">Remove</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+
+        {/* ================= PRODUCTS VIEW ================= */}
         {activeTab === 'products' && (
           <>
             <div className="flex justify-between items-center mb-8">
@@ -227,7 +253,7 @@ const AdminDashboard = () => {
                   {products.map((product) => (
                     <tr key={product._id} className="hover:bg-gray-700/50 transition">
                       <td className="py-4 px-6 flex items-center gap-3">
-                        <img src={product.image} alt={product.name} className="w-12 h-12 rounded-lg object-cover border border-gray-600 bg-gray-700" onError={(e) => {(e.target as HTMLImageElement).src = 'https://via.placeholder.com/50'}} />
+                        <img src={product.image} alt={product.name} className="w-12 h-12 rounded-lg object-cover border border-gray-600 bg-gray-700" onError={(e) => {(e.target as HTMLImageElement).src = 'https://placehold.co/150'}} />
                         <div><span className="font-bold text-white block">{product.name}</span></div>
                       </td>
                       <td className="py-4 px-6">{product.category}</td>
@@ -245,7 +271,7 @@ const AdminDashboard = () => {
           </>
         )}
 
-        {/* ================= ORDERS VIEW (EXISTING UI) ================= */}
+        {/* ================= ORDERS VIEW ================= */}
         {activeTab === 'orders' && (
           <>
             <div className="mb-8">
@@ -285,32 +311,6 @@ const AdminDashboard = () => {
             </div>
           </>
         )}
-
-        {/* ================= USERS VIEW (NEW TAB) ================= */}
-        {activeTab === 'users' && (
-          <>
-            <h1 className="text-3xl font-bold mb-8">Registered Users</h1>
-            <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden shadow-xl">
-              <table className="w-full text-left">
-                <thead className="bg-gray-900/50 text-gray-400 text-xs uppercase border-b border-gray-700">
-                  <tr><th className="py-4 px-6">Name</th><th className="py-4 px-6">Email</th><th className="py-4 px-6">Role</th><th className="py-4 px-6 text-center">Action</th></tr>
-                </thead>
-                <tbody className="divide-y divide-gray-700 text-gray-300">
-                  {users.map(user => (
-                    <tr key={user._id} className="hover:bg-gray-700/50">
-                      <td className="py-4 px-6 font-bold">{user.username}</td>
-                      <td className="py-4 px-6">{user.email}</td>
-                      <td className="py-4 px-6"><span className={`px-2 py-1 rounded text-xs ${user.role === 'ADMIN' || user.role === 'admin' ? 'bg-red-500/20 text-red-400' : 'bg-blue-500/20 text-blue-400'}`}>{user.role}</span></td>
-                      <td className="py-4 px-6 text-center">
-                        <button onClick={() => handleDeleteUser(user._id)} className="text-red-400 hover:text-white text-xs font-bold border border-red-500/30 px-3 py-1 rounded hover:bg-red-600 transition">Remove</button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </>
-        )}
       </main>
 
       {/* ================= MODALS ================= */}
@@ -323,7 +323,7 @@ const AdminDashboard = () => {
             <h2 className="text-2xl font-bold mb-6 text-white">{editingId ? "Edit Product" : "Add Product"}</h2>
             <form onSubmit={handleProductSubmit} className="space-y-4">
                <div><label className="text-sm text-gray-400">Name</label><input type="text" className="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 text-white" value={formData.name} onChange={e=>setFormData({...formData, name: e.target.value})} required /></div>
-               <div><label className="text-sm text-gray-400">Category</label><select className="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 text-white" value={formData.category} onChange={e=>setFormData({...formData, category: e.target.value})} required><option value="">Select...</option><option value="Electronics">Electronics</option><option value="Fashion">Fashion</option><option value="Toys">Toys</option></select></div>
+               <div><label className="text-sm text-gray-400">Category</label><select className="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 text-white" value={formData.category} onChange={e=>setFormData({...formData, category: e.target.value})} required><option value="">Select...</option><option value="Electronics">Electronics</option><option value="Fashion">Fashion</option><option value="Toys">Toys</option><option value="Beauty">Beauty</option></select></div>
                <div className="grid grid-cols-2 gap-4">
                  <div><label className="text-sm text-gray-400">Price</label><input type="number" className="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 text-white" value={formData.price} onChange={e=>setFormData({...formData, price: e.target.value})} required /></div>
                  <div><label className="text-sm text-gray-400">Stock</label><input type="number" className="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 text-white" value={formData.stock} onChange={e=>setFormData({...formData, stock: e.target.value})} required /></div>
@@ -355,9 +355,9 @@ const AdminDashboard = () => {
               <div className="pt-4 border-t border-gray-700">
                 <label className="text-sm text-gray-400 block mb-2">Update Status</label>
                 <div className="flex gap-2">
-                  <button onClick={() => updateOrderStatus(selectedOrder._id, 'Pending')} className={`flex-1 py-2 rounded text-xs font-bold border ${selectedOrder.status === 'Pending' ? 'bg-yellow-500 text-black' : 'border-gray-600 text-gray-400 hover:bg-gray-700'}`}>Pending</button>
-                  <button onClick={() => updateOrderStatus(selectedOrder._id, 'Shipped')} className={`flex-1 py-2 rounded text-xs font-bold border ${selectedOrder.status === 'Shipped' ? 'bg-blue-500 text-white' : 'border-gray-600 text-gray-400 hover:bg-gray-700'}`}>Shipped</button>
-                  <button onClick={() => updateOrderStatus(selectedOrder._id, 'Delivered')} className={`flex-1 py-2 rounded text-xs font-bold border ${selectedOrder.status === 'Delivered' ? 'bg-green-500 text-white' : 'border-gray-600 text-gray-400 hover:bg-gray-700'}`}>Delivered</button>
+                  <button onClick={() => handleUpdateOrderStatus(selectedOrder._id, 'Pending')} className={`flex-1 py-2 rounded text-xs font-bold border ${selectedOrder.status === 'Pending' ? 'bg-yellow-500 text-black' : 'border-gray-600 text-gray-400 hover:bg-gray-700'}`}>Pending</button>
+                  <button onClick={() => handleUpdateOrderStatus(selectedOrder._id, 'Shipped')} className={`flex-1 py-2 rounded text-xs font-bold border ${selectedOrder.status === 'Shipped' ? 'bg-blue-500 text-white' : 'border-gray-600 text-gray-400 hover:bg-gray-700'}`}>Shipped</button>
+                  <button onClick={() => handleUpdateOrderStatus(selectedOrder._id, 'Delivered')} className={`flex-1 py-2 rounded text-xs font-bold border ${selectedOrder.status === 'Delivered' ? 'bg-green-500 text-white' : 'border-gray-600 text-gray-400 hover:bg-gray-700'}`}>Delivered</button>
                 </div>
               </div>
             </div>

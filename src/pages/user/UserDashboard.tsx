@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
+import {  getWishList } from '../../services/user';
+import { getUserOrdersByEmail } from '../../services/adminService';
+import { useAuth } from '../../context/authContex';
+
 // Types
 interface Order {
   _id: string;
@@ -21,82 +25,80 @@ interface Product {
 
 const UserDashboard = () => {
   const navigate = useNavigate();
-  const [user, setUser] = useState<any>(null);
+  const { user } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
-  
-  // 1. අලුත් State දෙක (Wishlist සහ Cart සඳහා)
   const [wishlist, setWishlist] = useState<Product[]>([]);
   const [cartCount, setCartCount] = useState(0);
 
   useEffect(() => {
-    // LocalStorage එකෙන් User විස්තර ගන්නවා
-    const storedUser = localStorage.getItem('user');
-    if (!storedUser) {
-      navigate('/login'); // Log වෙලා නැත්නම් එළියට දානවා
+    if (!user) {
+    
       return;
     }
-    
-    const userData = JSON.parse(storedUser);
-    setUser(userData);
 
-    // 2. Real Data ගෙන්වා ගැනීම
-    fetchOrders(userData.email);
-    fetchWishlist(userData.email);
+    // 1. Orders ගන්න
+    fetchOrders(user.email);
 
-    // 3. Cart එකේ තියෙන Items ගාණ බැලීම
+    // 2. Wishlist ගන්න (මෙතන Product ID ඕනේ නෑ, Email විතරයි ඕනේ)
+    fetchWishlist(user.email); 
+
+    // 3. Cart Count ගන්න
     const cartItems = JSON.parse(localStorage.getItem('cart') || '[]');
     setCartCount(cartItems.length);
 
-    // Cart update වුනාම auto update වෙන්න listener එකක් (Optional)
-    window.addEventListener("storage", () => {
+    const handleStorageChange = () => {
       const updatedCart = JSON.parse(localStorage.getItem('cart') || '[]');
       setCartCount(updatedCart.length);
-    });
+    };
 
-  }, []);
+    window.addEventListener("storage", handleStorageChange);
+
+    // Cleanup function
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+    };
+
+  }, [user]);
 
   const fetchOrders = async (email: string) => {
+ 
     try {
-      const res = await fetch(`http://localhost:5000/api/orders/user/${email}`);
-      const data = await res.json();
-      setOrders(data);
+      
+        const res = await getUserOrdersByEmail(email);
+      setOrders(Array.isArray(res.data) ? res.data : []);
+
     } catch (error) {
       console.error("Error fetching orders:", error);
     }
   };
 
-  // 4. Wishlist එක Backend එකෙන් ගන්න Function එක
-
-const fetchWishlist = async (email: string) => {
-  try {
-    const res = await fetch(`http://localhost:5000/api/users/wishlist/${email}`);
-    
-    if (res.ok) {
-      const data = await res.json();
-      // මෙතනින් බලනවා ආපු Data එක ඇත්තටම Array එකක්ද කියලා
-      if (Array.isArray(data)) {
-        setWishlist(data);
+  
+  const fetchWishlist = async (email: string) => {
+    try {
+      // --- Get Wishlist ---
+      const wishlistRes = await getWishList(email);
+      if (Array.isArray(wishlistRes.data)) {
+        setWishlist(wishlistRes.data);
       } else {
-        setWishlist([]); // Array එකක් නෙවෙයි නම් හිස් එකක් දානවා
+        setWishlist([]);
       }
-    } else {
-      setWishlist([]); // Error එකක් නම් හිස් එකක් දානවා (කැඩෙන්නේ නෑ)
+    } catch (error) {
+      console.error("Error loading wishlist:", error);
+      setWishlist([]);
     }
-  } catch (error) {
-    console.error("Error fetching wishlist:", error);
-    setWishlist([]); // මොනවා වුනත් කැඩෙන්න දෙන්නේ නෑ
-  }
-};
+  };
 
   const handleLogout = () => {
-    localStorage.removeItem('user');
+    localStorage.removeItem('user'); // Or clear auth context
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
     navigate('/login');
   };
 
   return (
     <div className="min-h-screen bg-gray-900 p-6 md:p-10 font-sans text-gray-100">
       
-      {/* 1. Navbar / Header Area */}
+      {/* 1. Navbar */}
       <div className="flex flex-col md:flex-row justify-between items-center mb-10 gap-4">
         <div>
           <h1 className="text-3xl font-extrabold text-white tracking-tight">
@@ -106,7 +108,6 @@ const fetchWishlist = async (email: string) => {
         </div>
         
         <div className="flex gap-4">
-            {/* Quiz Button */}
             <Link 
             to="/quiz" 
             className="bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-red-500/30 transform transition hover:-translate-y-1 active:scale-95 flex items-center gap-2"
@@ -114,7 +115,6 @@ const fetchWishlist = async (email: string) => {
             <span className="text-xl">🎁</span> Start Gift Quiz
             </Link>
             
-            {/* Logout Button */}
             <button onClick={handleLogout} className="bg-gray-800 border border-gray-600 text-gray-300 px-4 py-3 rounded-xl font-bold hover:bg-gray-700 transition">
                 Logout
             </button>
@@ -123,7 +123,7 @@ const fetchWishlist = async (email: string) => {
 
       {/* 2. Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-        {/* Wishlist Count (Updated) */}
+        {/* Wishlist Count */}
         <div className="bg-gray-800 p-6 rounded-2xl border border-gray-700 shadow-xl hover:border-gray-600 transition duration-300 group">
           <div className="flex items-center gap-5">
             <div className="p-4 bg-pink-500/10 text-pink-500 rounded-xl border border-pink-500/20 group-hover:bg-pink-500 group-hover:text-white transition duration-300">
@@ -149,7 +149,7 @@ const fetchWishlist = async (email: string) => {
           </div>
         </div>
 
-        {/* Cart Count (Updated) */}
+        {/* Cart Count */}
         <div className="bg-gray-800 p-6 rounded-2xl border border-gray-700 shadow-xl hover:border-gray-600 transition duration-300 group">
           <div className="flex items-center gap-5">
             <Link to="/cart" className="p-4 bg-purple-500/10 text-purple-500 rounded-xl border border-purple-500/20 group-hover:bg-purple-500 group-hover:text-white transition duration-300 block">
@@ -165,7 +165,7 @@ const fetchWishlist = async (email: string) => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        {/* 3. Recent Orders Table (Real Data) */}
+        {/* 3. Recent Orders Table */}
         <div className="lg:col-span-2 bg-gray-800 p-8 rounded-2xl shadow-xl border border-gray-700">
           <h2 className="text-2xl font-bold mb-6 text-white border-b border-gray-700 pb-4">Recent Orders</h2>
           <div className="overflow-x-auto">
@@ -206,7 +206,7 @@ const fetchWishlist = async (email: string) => {
           </div>
         </div>
 
-        {/* 4. Wishlist (Real Data Updated) */}
+        {/* 4. Wishlist Preview */}
         <div className="bg-gray-800 p-8 rounded-2xl shadow-xl border border-gray-700">
           <div className="flex justify-between items-center mb-6 border-b border-gray-700 pb-4">
             <h2 className="text-2xl font-bold text-white">Wishlist</h2>
@@ -222,7 +222,7 @@ const fetchWishlist = async (email: string) => {
                         src={item.image} 
                         alt={item.name} 
                         className="w-14 h-14 rounded-lg object-cover border border-gray-600"
-                        onError={(e) => {(e.target as HTMLImageElement).src = 'https://via.placeholder.com/150'}} 
+                        onError={(e) => {(e.target as HTMLImageElement).src = 'https://placehold.co/150'}} 
                     />
                     <div>
                     <h4 className="font-bold text-gray-200 group-hover:text-white truncate w-32">{item.name}</h4>
