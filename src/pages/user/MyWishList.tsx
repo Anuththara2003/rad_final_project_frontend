@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/authContex'; // <--- 1. Context එක Import කරන්න
+import { useAuth } from '../../context/authContex';
 import { getWishList, toggleWishListItem } from '../../services/user';
 
 interface Product {

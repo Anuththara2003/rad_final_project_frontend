@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { registerUser } from '../services/auth'; 
 
 const Signup = () => {
   const [username, setUsername] = useState('');
@@ -9,21 +10,19 @@ const Signup = () => {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    
     try {
-      const response = await fetch('http://localhost:5000/api/auth/signup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, email, password }),
-      });
+     
+      await registerUser({ username, email, password });
 
-      if (response.ok) {
-        alert("Registration Successful! Please Login.");
-        navigate('/login');
-      } else {
-        alert("Registration Failed");
-      }
-    } catch (error) {
-      console.error("Error:", error);
+      alert("Registration Successful! Please Login.");
+      navigate('/login');
+
+    } catch (error: any) {
+      console.error("Signup Error:", error);
+ 
+      const errorMessage = error.response?.data?.message || "Registration Failed";
+      alert(errorMessage);
     }
   };
 
@@ -44,6 +43,7 @@ const Signup = () => {
               value={username}
               onChange={(e) => setUsername(e.target.value)} 
               className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-400 transition"
+              required
             />
           </div>
 
@@ -55,6 +55,7 @@ const Signup = () => {
               value={email}
               onChange={(e) => setEmail(e.target.value)} 
               className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-400 transition"
+              required
             />
           </div>
 
@@ -66,6 +67,7 @@ const Signup = () => {
               value={password}
               onChange={(e) => setPassword(e.target.value)} 
               className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-400 transition"
+              required
             />
           </div>
 

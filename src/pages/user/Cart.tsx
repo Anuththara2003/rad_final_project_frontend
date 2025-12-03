@@ -1,33 +1,39 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { placeOrder } from '../../services/order'; 
+import { placeOrder } from '../../services/order';
+import { useAuth } from '../../context/authContex'; 
 
 const Cart = () => {
   const navigate = useNavigate();
+  const { user } = useAuth(); 
+  
   const [cartItems, setCartItems] = useState<any[]>([]);
   const [giftWrap, setGiftWrap] = useState(false);
   const [message, setMessage] = useState('');
-  
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
 
   useEffect(() => {
-    const items = JSON.parse(localStorage.getItem('cart') || '[]');
-    setCartItems(items);
-  }, []);
+    if (user && user.email) {
+      const cartKey = `cart_${user.email}`;
+      const items = JSON.parse(localStorage.getItem(cartKey) || '[]');
+      setCartItems(items);
+    }
+  }, [user]); 
 
   const subtotal = cartItems.reduce((acc, item) => acc + item.price, 0);
   const total = subtotal + (giftWrap ? 5 : 0);
 
   const removeFromCart = (id: string) => {
+    if (!user || !user.email) return;
+    
+    const cartKey = `cart_${user.email}`;
     const newCart = cartItems.filter(item => item._id !== id);
     setCartItems(newCart);
-    localStorage.setItem('cart', JSON.stringify(newCart));
+    localStorage.setItem(cartKey, JSON.stringify(newCart));
     window.dispatchEvent(new Event("storage"));
   };
 
-  
   const handleCheckout = async () => {
-    if (!user.email) return alert("Please login to place an order!");
+    if (!user || !user.email) return alert("Please login to place an order!");
 
     const orderData = {
       customerName: user.username,
@@ -40,32 +46,21 @@ const Cart = () => {
     };
 
     try {
-     
-      
       const res = await placeOrder(orderData);
-
       if (res.status === 200 || res.status === 201) {
         alert("Order Placed Successfully! 🎉");
-        localStorage.removeItem('cart');
-        window.dispatchEvent(new Event("storage")); 
         
+      
+        localStorage.removeItem(`cart_${user.email}`);
+        
+        window.dispatchEvent(new Event("storage"));
         navigate('/dashboard');
       }
     } catch (error) {
       console.error("Checkout Error:", error);
-      alert("Failed to place order. Please try again.");
+      alert("Failed to place order.");
     }
   };
-
-  if (cartItems.length === 0) {
-    return (
-      <div className="min-h-screen bg-gray-900 flex flex-col items-center justify-center text-white">
-        <h2 className="text-3xl font-bold mb-4">Your Cart is Empty 🛒</h2>
-        <p className="text-gray-400 mb-6">Looks like you haven't added any gifts yet.</p>
-        <button onClick={() => navigate('/dashboard')} className="bg-red-600 px-6 py-2 rounded-lg font-bold hover:bg-red-500">Go to Dashboard</button>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gray-900 p-6 md:p-10 font-sans text-white">

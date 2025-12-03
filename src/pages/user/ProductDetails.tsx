@@ -7,7 +7,6 @@ import { useAuth } from '../../context/authContex';
 const ProductDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-
   const { user } = useAuth(); 
   
   const [product, setProduct] = useState<any>(null);
@@ -17,33 +16,36 @@ const ProductDetails = () => {
     const fetchProduct = async () => {
       try {
         const res = await getAllProducts();
-        
-     
         const allProducts = Array.isArray(res.data) ? res.data : [];
         const foundProduct = allProducts.find((p: any) => p._id === id);
         setProduct(foundProduct);
       } catch (error) {
-        console.error("Error fetching product:", error);
+        console.error(error);
       } finally {
         setLoading(false);
       }
     };
-
     fetchProduct();
   }, [id]);
 
- 
-
   const addToCart = () => {
-    const existingCart = JSON.parse(localStorage.getItem('cart') || '[]');
+   
+    if (!user || !user.email) return alert("Please login first!");
+
+    const cartKey = `cart_${user.email}`;
+    
+    const existingCart = JSON.parse(localStorage.getItem(cartKey) || '[]');
     const existingItem = existingCart.find((item: any) => item._id === product._id);
 
     if (existingItem) {
       alert("Item already in Cart! 🛒");
     } else {
       existingCart.push({ ...product, quantity: 1 });
-      localStorage.setItem('cart', JSON.stringify(existingCart));
-      window.dispatchEvent(new Event("storage")); 
+      
+     
+      localStorage.setItem(cartKey, JSON.stringify(existingCart));
+      
+      window.dispatchEvent(new Event("storage"));
       
       if(confirm("Item added to Cart! Go to Cart now?")) {
         navigate('/cart');
@@ -52,18 +54,12 @@ const ProductDetails = () => {
   };
 
   const addToWishlist = async () => {
-   
-    console.log("Current User:", user);
-
-    if (!user || !user.email) {
-        return alert("Please login first!");
-    }
-
+    if (!user || !user.email) return alert("Please login first!");
     try {
       await toggleWishListItem(user.email, product._id);
       alert("Wishlist Updated! ❤️");
     } catch (error) {
-      console.error("Wishlist Error:", error);
+      console.error(error);
     }
   };
 

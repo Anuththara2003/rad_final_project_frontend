@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-
-import {  getWishList } from '../../services/user';
-import { getUserOrdersByEmail } from '../../services/adminService';
+import { getWishList } from '../../services/user';
+import {  } from '../../services/user'; 
 import { useAuth } from '../../context/authContex';
+import { getUserOrdersByEmail } from '../../services/adminService';
 
 // Types
 interface Order {
@@ -32,56 +32,64 @@ const UserDashboard = () => {
 
   useEffect(() => {
     if (!user) {
-    
       return;
     }
 
    
     fetchOrders(user.email);
-
-    
     fetchWishlist(user.email); 
 
-    // 3. Cart Count ගන්න
-    const cartItems = JSON.parse(localStorage.getItem('cart') || '[]');
-    setCartCount(cartItems.length);
+   
+    const updateCartCount = () => {
 
-    const handleStorageChange = () => {
-      const updatedCart = JSON.parse(localStorage.getItem('cart') || '[]');
-      setCartCount(updatedCart.length);
+        const cartKey = `cart_${user.email}`;
+        const cartItems = JSON.parse(localStorage.getItem(cartKey) || '[]');
+        setCartCount(cartItems.length);
     };
 
-    window.addEventListener("storage", handleStorageChange);
+    updateCartCount(); 
 
-    // Cleanup function
+    window.addEventListener("storage", updateCartCount);
+
     return () => {
-      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("storage", updateCartCount);
     };
 
   }, [user]);
 
+  
   const fetchOrders = async (email: string) => {
- 
     try {
-      
         const res = await getUserOrdersByEmail(email);
-      setOrders(Array.isArray(res.data) ? res.data : []);
-
+        setOrders(Array.isArray(res.data) ? res.data : []);
     } catch (error) {
-      console.error("Error fetching orders:", error);
+        console.error("Error fetching orders:", error);
+        setOrders([]);
     }
   };
 
-  
-  const fetchWishlist = async (email: string) => {
+
+const fetchWishlist = async (email: string) => {
     try {
-      // --- Get Wishlist ---
-      const wishlistRes = await getWishList(email);
-      if (Array.isArray(wishlistRes.data)) {
-        setWishlist(wishlistRes.data);
+      console.log("Fetching Wishlist for:", email); 
+
+      const res = await getWishList(email);
+      
+     
+      console.log("Wishlist Response from Backend:", res); 
+
+      
+      if (res.data && Array.isArray(res.data)) {
+        console.log("Setting Wishlist State:", res.data); 
+        setWishlist(res.data);
+      } else if (Array.isArray(res)) {
+        console.log("Setting Wishlist State (Direct):", res);
+        setWishlist(res);
       } else {
+        console.error("Unknown Data Format:", res); 
         setWishlist([]);
       }
+
     } catch (error) {
       console.error("Error loading wishlist:", error);
       setWishlist([]);
