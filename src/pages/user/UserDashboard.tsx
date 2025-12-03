@@ -36,10 +36,10 @@ const UserDashboard = () => {
       return;
     }
 
-    // 1. Orders ගන්න
+   
     fetchOrders(user.email);
 
-    // 2. Wishlist ගන්න (මෙතන Product ID ඕනේ නෑ, Email විතරයි ඕනේ)
+    
     fetchWishlist(user.email); 
 
     // 3. Cart Count ගන්න
@@ -89,7 +89,7 @@ const UserDashboard = () => {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('user'); // Or clear auth context
+    localStorage.removeItem('user'); 
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
     navigate('/login');

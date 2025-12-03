@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/authContex'; // <--- 1. Context එක Import කරන්න
+import { getWishList, toggleWishListItem } from '../../services/user';
 
 interface Product {
   _id: string;
@@ -12,58 +14,60 @@ interface Product {
 
 const MyWishList = () => {
   const navigate = useNavigate();
-  const [wishlist, setWishlist] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
+  
 
-  // User විස්තර ගන්න
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+  const { user, loading: authLoading } = useAuth(); 
+  
+  const [wishlist, setWishlist] = useState<Product[]>([]);
+  const [dataLoading, setDataLoading] = useState(true); 
 
   useEffect(() => {
-    if (!user.email) {
-      navigate('/login');
-      return;
+   
+    if (!authLoading) {
+      if (!user) {
+        navigate('/login');
+      } else {
+        
+        fetchWishlist(user.email);
+      }
     }
-    fetchWishlist();
-  }, []);
+  }, [user, authLoading, navigate]); 
 
-  // 1. Wishlist Items Backend එකෙන් ගෙන්වා ගැනීම
-  const fetchWishlist = async () => {
+  
+  const fetchWishlist = async (email: string) => {
     try {
-      const res = await fetch(`http://localhost:5000/api/users/wishlist/${user.email}`);
-      const data = await res.json();
+      const res = await getWishList(email);
       
-      // ආරක්ෂිතව Array එකක්ද කියලා බලලා set කරනවා
-      if (Array.isArray(data)) {
-        setWishlist(data);
+      if (res.data && Array.isArray(res.data)) {
+        setWishlist(res.data);
       } else {
         setWishlist([]);
       }
     } catch (error) {
       console.error("Error fetching wishlist:", error);
+      setWishlist([]);
     } finally {
-      setLoading(false);
+      setDataLoading(false);
     }
   };
 
-  // 2. Wishlist එකෙන් අයින් කරන Function එක
-  const removeFromWishlist = async (productId: string) => {
-    try {
-      const res = await fetch('http://localhost:5000/api/users/wishlist', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: user.email, productId })
-      });
 
-      if (res.ok) {
-        // අයින් කළාට පස්සේ UI එකෙන් ඒක අයින් කරනවා (Refresh නොවී)
-        setWishlist(wishlist.filter(item => item._id !== productId));
-      }
+  const removeFromWishlist = async (productId: string) => {
+    if (!user) return;
+
+    try {
+  
+      await toggleWishListItem(user.email, productId);
+      
+      
+      setWishlist(wishlist.filter(item => item._id !== productId));
+      
     } catch (error) {
       console.error("Error removing item:", error);
     }
   };
 
-  // 3. Cart එකට දාන Function එක
   const addToCart = (product: Product) => {
     const existingCart = JSON.parse(localStorage.getItem('cart') || '[]');
     const existingItem = existingCart.find((item: any) => item._id === product._id);
@@ -73,12 +77,18 @@ const MyWishList = () => {
     } else {
       existingCart.push({ ...product, quantity: 1 });
       localStorage.setItem('cart', JSON.stringify(existingCart));
+      window.dispatchEvent(new Event("storage")); 
       
       if(confirm("Added to Cart! Go to Cart?")) {
         navigate('/cart');
       }
     }
   };
+
+
+  if (authLoading) {
+    return <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">Checking Authentication...</div>;
+  }
 
   return (
     <div className="min-h-screen bg-gray-900 p-6 md:p-10 font-sans text-white">
@@ -95,7 +105,7 @@ const MyWishList = () => {
       </div>
 
       {/* Content */}
-      {loading ? (
+      {dataLoading ? (
         <p className="text-center text-xl text-gray-500">Loading your favorites...</p>
       ) : wishlist.length === 0 ? (
         <div className="text-center py-20 bg-gray-800 rounded-2xl border border-gray-700">
@@ -116,7 +126,7 @@ const MyWishList = () => {
                   src={product.image} 
                   alt={product.name} 
                   className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
-                  onError={(e) => {(e.target as HTMLImageElement).src = 'https://via.placeholder.com/150'}}
+                  onError={(e) => {(e.target as HTMLImageElement).src = 'https://placehold.co/150'}}
                 />
                 <button 
                   onClick={() => removeFromWishlist(product._id)}
