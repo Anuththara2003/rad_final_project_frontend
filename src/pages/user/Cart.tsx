@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { placeOrder } from '../../services/order'; 
 
 const Cart = () => {
   const navigate = useNavigate();
@@ -7,29 +8,24 @@ const Cart = () => {
   const [giftWrap, setGiftWrap] = useState(false);
   const [message, setMessage] = useState('');
   
-  // User විස්තර ගන්න (Order එක දාන්න නම් Login වෙලා ඉන්න ඕනේ)
   const user = JSON.parse(localStorage.getItem('user') || '{}');
 
   useEffect(() => {
-    // LocalStorage එකෙන් Cart Items ගන්නවා
     const items = JSON.parse(localStorage.getItem('cart') || '[]');
     setCartItems(items);
   }, []);
 
-  // මුළු එකතුව (Total Price) ගණනය කිරීම
   const subtotal = cartItems.reduce((acc, item) => acc + item.price, 0);
-  const total = subtotal + (giftWrap ? 5 : 0); // Gift wrap වලට $5 ක් එකතු වෙනවා
+  const total = subtotal + (giftWrap ? 5 : 0);
 
-  // Item එකක් Cart එකෙන් අයින් කිරීම
   const removeFromCart = (id: string) => {
     const newCart = cartItems.filter(item => item._id !== id);
     setCartItems(newCart);
-    localStorage.setItem('cart', JSON.stringify(newCart)); // Update LocalStorage
-    // Event එකක් යවනවා Dashboard එක update වෙන්න (Optional)
+    localStorage.setItem('cart', JSON.stringify(newCart));
     window.dispatchEvent(new Event("storage"));
   };
 
-  // Order එක Confirm කරන Function එක
+  
   const handleCheckout = async () => {
     if (!user.email) return alert("Please login to place an order!");
 
@@ -44,21 +40,20 @@ const Cart = () => {
     };
 
     try {
-      const res = await fetch('http://localhost:5000/api/orders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(orderData)
-      });
+     
+      
+      const res = await placeOrder(orderData);
 
-      if (res.ok) {
+      if (res.status === 200 || res.status === 201) {
         alert("Order Placed Successfully! 🎉");
-        localStorage.removeItem('cart'); // Order එක දැම්මම Cart එක හිස් කරනවා
-        navigate('/dashboard'); // Dashboard එකට යවනවා
-      } else {
-        alert("Failed to place order.");
+        localStorage.removeItem('cart');
+        window.dispatchEvent(new Event("storage")); 
+        
+        navigate('/dashboard');
       }
     } catch (error) {
       console.error("Checkout Error:", error);
+      alert("Failed to place order. Please try again.");
     }
   };
 
@@ -74,6 +69,15 @@ const Cart = () => {
 
   return (
     <div className="min-h-screen bg-gray-900 p-6 md:p-10 font-sans text-white">
+      
+      {/* --- Back Button Added --- */}
+      <button 
+        onClick={() => navigate(-1)} 
+        className="text-gray-400 hover:text-white mb-6 flex items-center gap-2 transition"
+      >
+        ← Back
+      </button>
+
       <h1 className="text-3xl font-bold mb-8">Shopping Cart 🛍️</h1>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -109,7 +113,6 @@ const Cart = () => {
         <div className="bg-gray-800 p-6 rounded-xl border border-gray-700 h-fit shadow-xl">
           <h2 className="text-xl font-bold mb-6 text-white border-b border-gray-700 pb-2">Order Summary</h2>
           
-          {/* Gift Options */}
           <div className="mb-6 space-y-4">
             <label className="flex items-center gap-3 p-3 bg-gray-700/50 rounded-lg cursor-pointer hover:bg-gray-700 transition border border-gray-600">
               <input 
