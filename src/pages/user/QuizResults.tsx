@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
-import { useLocation, Link, useNavigate } from 'react-router-dom'; // useNavigate එකතු කළා
+import { useLocation, Link, useNavigate } from 'react-router-dom';
+import { getRecommendations } from '../../services/productService'; 
+import { toggleWishListItem } from '../../services/user'; 
 
 interface Product {
   _id: string;
@@ -11,49 +13,50 @@ interface Product {
 
 const QuizResults = () => {
   const location = useLocation();
-  const navigate = useNavigate(); // Navigate function එක ගත්තා
+  const navigate = useNavigate();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Quiz එකෙන් එවපු Answers (State) ලබාගැනීම
+ 
   const answers = location.state; 
   const user = JSON.parse(localStorage.getItem('user') || '{}');
 
   useEffect(() => {
-    const fetchRecommendations = async () => {
+    
+    const loadRecommendations = async () => {
       try {
-        const res = await fetch('http://localhost:5000/api/products/recommend', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(answers),
-        });
-        const data = await res.json();
-        setProducts(data);
+        const res = await getRecommendations(answers);
+        
+        if (Array.isArray(res.data)) {
+          setProducts(res.data);
+        } else {
+          setProducts([]);
+        }
       } catch (error) {
         console.error("Error fetching recommendations:", error);
+        setProducts([]);
       } finally {
         setLoading(false);
       }
     };
 
     if (answers) {
-      fetchRecommendations();
+      loadRecommendations();
     } else {
       setLoading(false);
     }
   }, [answers]);
 
-  // Heart Button Logic
-  const addToWishlist = async (productId: string) => {
+ 
+  const handleAddToWishlist = async (productId: string) => {
     if(!user.email) return alert("Please login first!");
     
-    const res = await fetch('http://localhost:5000/api/users/wishlist', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: user.email, productId })
-    });
-    
-    if(res.ok) alert("Wishlist Updated! ❤️");
+    try {
+      await toggleWishListItem(user.email, productId);
+      alert("Wishlist Updated! ❤️");
+    } catch (error) {
+      console.error("Wishlist Error:", error);
+    }
   };
 
   return (
@@ -90,35 +93,33 @@ const QuizResults = () => {
           {products.map((product) => (
             <div key={product._id} className="bg-gray-800 rounded-2xl border border-gray-700 overflow-hidden hover:scale-105 transition duration-300 shadow-xl group">
               
-              {/* Product Image */}
+              {/* Image */}
               <div className="relative h-48 w-full overflow-hidden">
                 <img 
                   src={product.image} 
                   alt={product.name} 
                   className="w-full h-full object-cover group-hover:opacity-90 transition"
-                  onError={(e) => {(e.target as HTMLImageElement).src = 'https://via.placeholder.com/150?text=Gift'}} 
+                  onError={(e) => {(e.target as HTMLImageElement).src = 'https://placehold.co/150?text=Gift'}} 
                 />
                 <span className="absolute top-3 right-3 bg-black/60 text-white text-xs px-2 py-1 rounded backdrop-blur-md border border-white/10">
                   {product.category}
                 </span>
               </div>
 
-              {/* Product Details */}
+              {/* Details */}
               <div className="p-5">
                 <h3 className="text-xl font-bold text-white mb-1 truncate">{product.name}</h3>
                 <div className="flex justify-between items-center mt-3">
                   <p className="text-green-400 font-extrabold text-lg">${product.price}</p>
                   
-                  {/* Buttons */}
                   <div className="flex gap-2">
                     <button 
-                      onClick={() => addToWishlist(product._id)}
+                      onClick={() => handleAddToWishlist(product._id)}
                       className="bg-gray-700 p-2 rounded-lg text-gray-300 hover:bg-pink-500 hover:text-white transition" 
                       title="Add to Wishlist"
                     >
                       ❤️
                     </button>
-                    {/* View Button එකට onClick දැම්මා */}
                     <button 
                       onClick={() => navigate(`/product/${product._id}`)}
                       className="bg-red-600 p-2 rounded-lg text-white hover:bg-red-500 transition text-sm font-bold px-3"
