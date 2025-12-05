@@ -29,10 +29,12 @@ export const updateOrderStatus = async (id: string, status: string) => {
 
 
 export const getUserOrdersByEmail = async(email:string)=>{
-    return await api.get(`/orders/${email}`);
+    return await api.get(`/orders/user/${email}`);
 }
 
-
+export const deleteOrder = async (id: string) => {
+  return await api.delete(`/orders/${id}`);
+};
 
 
 
