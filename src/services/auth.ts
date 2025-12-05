@@ -22,3 +22,8 @@ export const refreshTokens = async (refreshToken: string) => {
     const res = await api.post('/auth/refresh', { token: refreshToken })
     return res.data
 }
+
+
+export const googleAuth = async (credential: string) => {
+    return await api.post('/auth/google', { token: credential });
+};

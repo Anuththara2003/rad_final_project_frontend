@@ -1,28 +1,64 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { registerUser } from '../services/auth'; 
+import { registerUser, googleAuth } from '../services/auth'; 
+import { GoogleLogin } from '@react-oauth/google'; 
+import { getMyDetails } from '../services/user';
+import { useAuth } from '../context/authContex';
+
 
 const Signup = () => {
+    const { user, setUser } = useAuth();
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
 
+  
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     try {
-     
       await registerUser({ username, email, password });
-
       alert("Registration Successful! Please Login.");
       navigate('/login');
-
     } catch (error: any) {
       console.error("Signup Error:", error);
- 
       const errorMessage = error.response?.data?.message || "Registration Failed";
       alert(errorMessage);
+    }
+  };
+
+
+  const handleGoogleSuccess = async (credentialResponse: any) => {
+    try {
+      if (credentialResponse.credential) {
+        
+        const res = await googleAuth(credentialResponse.credential);
+        
+
+
+      
+        localStorage.setItem("accessToken", res.data.accessToken);
+        localStorage.setItem("refreshToken", res.data.refreshToken);
+        // localStorage.setItem("user", JSON.stringify(res.data.user));
+
+         const details = await getMyDetails();
+        
+                    setUser(details.data);
+                    console.log(user);
+        
+
+        alert("Google Login Successful! 🎉");
+        
+        
+        if (res.data.role == 'ADMIN') {
+            navigate('/admin-dashboard');
+        } else {
+            navigate('/dashboard');
+        }
+      }
+    } catch (error) {
+      console.error("Google Auth Failed:", error);
+      alert("Google Sign-In Failed");
     }
   };
 
@@ -32,9 +68,9 @@ const Signup = () => {
 
       <div className="relative z-10 bg-white/90 backdrop-blur-md p-10 rounded-2xl shadow-2xl max-w-md w-full text-center border border-white/50">
         <h2 className="text-3xl font-bold text-gray-800 mb-2">Join Giftify 🎈</h2>
-        <p className="text-gray-500 mb-8">Create an account to start gifting.</p>
+        <p className="text-gray-500 mb-6">Create an account to start gifting.</p>
 
-        <form onSubmit={handleSignup} className="space-y-5">
+        <form onSubmit={handleSignup} className="space-y-4">
           <div className="text-left">
             <label className="block text-sm font-semibold text-gray-600 mb-1">Username</label>
             <input 
@@ -75,6 +111,28 @@ const Signup = () => {
             Sign Up
           </button>
         </form>
+
+        {/* --- OR Divider --- */}
+        <div className="flex items-center my-6">
+            <div className="flex-grow border-t border-gray-300"></div>
+            <span className="mx-4 text-gray-500 text-sm font-medium">OR</span>
+            <div className="flex-grow border-t border-gray-300"></div>
+        </div>
+
+        {/* --- Google Button --- */}
+        <div className="flex justify-center w-full">
+            <GoogleLogin
+                onSuccess={handleGoogleSuccess}
+                onError={() => {
+                    console.log('Login Failed');
+                    alert("Google Login Failed");
+                }}
+                shape="circle"
+                theme="outline"
+                width="100%"
+                size="large"
+            />
+        </div>
 
         <div className="mt-6 text-sm text-gray-600">
           Already have an account? <Link to="/login" className="text-red-500 font-bold hover:underline">Login</Link>
