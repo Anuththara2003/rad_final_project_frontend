@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { getWishList } from '../../services/user';
-import {  } from '../../services/user'; 
 import { useAuth } from '../../context/authContex';
 import { getUserOrdersByEmail } from '../../services/adminService';
 
@@ -30,18 +29,18 @@ const UserDashboard = () => {
   const [wishlist, setWishlist] = useState<Product[]>([]);
   const [cartCount, setCartCount] = useState(0);
 
+  // --- NEW: Tab State ---
+  const [orderTab, setOrderTab] = useState<'active' | 'history'>('active');
+
   useEffect(() => {
     if (!user) {
       return;
     }
 
-   
     fetchOrders(user.email);
     fetchWishlist(user.email); 
 
-   
     const updateCartCount = () => {
-
         const cartKey = `cart_${user.email}`;
         const cartItems = JSON.parse(localStorage.getItem(cartKey) || '[]');
         setCartCount(cartItems.length);
@@ -69,16 +68,14 @@ const UserDashboard = () => {
   };
 
 
-const fetchWishlist = async (email: string) => {
+  const fetchWishlist = async (email: string) => {
     try {
       console.log("Fetching Wishlist for:", email); 
 
       const res = await getWishList(email);
       
-     
       console.log("Wishlist Response from Backend:", res); 
 
-      
       if (res.data && Array.isArray(res.data)) {
         console.log("Setting Wishlist State:", res.data); 
         setWishlist(res.data);
@@ -102,6 +99,15 @@ const fetchWishlist = async (email: string) => {
     localStorage.removeItem('refreshToken');
     navigate('/login');
   };
+
+  // --- NEW: Filter Logic for Tabs ---
+  const displayedOrders = orders.filter(order => {
+    if (orderTab === 'active') {
+        return order.status !== 'Delivered'; 
+    } else {
+        return order.status === 'Delivered'; 
+    }
+  });
 
   return (
     <div className="min-h-screen bg-gray-900 p-6 md:p-10 font-sans text-gray-100">
@@ -173,9 +179,29 @@ const fetchWishlist = async (email: string) => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        {/* 3. Recent Orders Table */}
+        {/* 3. Recent Orders Table (UPDATED WITH TABS) */}
         <div className="lg:col-span-2 bg-gray-800 p-8 rounded-2xl shadow-xl border border-gray-700">
-          <h2 className="text-2xl font-bold mb-6 text-white border-b border-gray-700 pb-4">Recent Orders</h2>
+          
+          <div className="flex justify-between items-center mb-6 border-b border-gray-700 pb-4">
+            <h2 className="text-2xl font-bold text-white">My Orders</h2>
+            
+            {/* Tabs UI Added Here */}
+            <div className="flex gap-2">
+                <button 
+                    onClick={() => setOrderTab('active')}
+                    className={`px-4 py-1.5 rounded-lg text-sm font-bold transition ${orderTab === 'active' ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-400 hover:text-white'}`}
+                >
+                    Active
+                </button>
+                <button 
+                    onClick={() => setOrderTab('history')}
+                    className={`px-4 py-1.5 rounded-lg text-sm font-bold transition ${orderTab === 'history' ? 'bg-green-600 text-white' : 'bg-gray-700 text-gray-400 hover:text-white'}`}
+                >
+                    History
+                </button>
+            </div>
+          </div>
+
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
@@ -187,10 +213,10 @@ const fetchWishlist = async (email: string) => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-700">
-                {orders.length === 0 ? (
-                    <tr><td colSpan={4} className="text-center py-6 text-gray-500">No orders found.</td></tr>
+                {displayedOrders.length === 0 ? (
+                    <tr><td colSpan={4} className="text-center py-6 text-gray-500">No {orderTab} orders found.</td></tr>
                 ) : (
-                    orders.map((order) => (
+                    displayedOrders.map((order) => (
                     <tr key={order._id} className="hover:bg-gray-700/50 transition duration-200">
                         <td className="py-4 font-mono text-red-400 text-sm">#{order._id.slice(-6)}</td>
                         <td className="py-4 text-gray-200">{order.items.length} Items</td>
