@@ -13,3 +13,4 @@ export const getMyDetails = async () => {
     const res = await api.get('/users/getMyDetails')
     return res.data
 }
+
