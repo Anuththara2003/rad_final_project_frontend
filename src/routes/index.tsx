@@ -13,6 +13,7 @@ import { useAuth } from '../context/authContex';
 import { Suspense, type ReactNode } from 'react';
 import Layouts from '../layouts/Layouts';
 import ForgotPassword from '../pages/ForgotPassword';
+import ResetPassword from '../pages/ResetPassword';
 
 
 
@@ -76,6 +77,7 @@ function index() {
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password/:token" element={<ResetPassword />} />
 
           {/* User Routes */}
           <Route element={<RequireAuth><Layouts/></RequireAuth>}>

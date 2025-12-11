@@ -30,9 +30,9 @@ const ForgotPassword = () => {
         navigate('/login');
       }, 3000);
 
-    } catch (error) {
-      console.error("Error:", error);
-      // Demo එකක් නිසා දැනට Error ආවත් Success වගේ පෙන්නන්නම් (Backend නැති නිසා)
+    } catch (error:any) {
+      console.log("Error:", error.message);
+      
       enqueueSnackbar("If this email exists, a reset link has been sent.", { variant: 'info' });
     } finally {
       setLoading(false);
