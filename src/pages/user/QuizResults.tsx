@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useLocation, Link, useNavigate } from 'react-router-dom';
 import { getRecommendations } from '../../services/productService'; 
 import { toggleWishListItem } from '../../services/user'; 
+import { useSnackbar } from 'notistack'
 
 interface Product {
   _id: string;
@@ -16,6 +17,7 @@ const QuizResults = () => {
   const navigate = useNavigate();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const { enqueueSnackbar } = useSnackbar();
 
  
   const answers = location.state; 
@@ -53,7 +55,7 @@ const QuizResults = () => {
     
     try {
       await toggleWishListItem(user.email, productId);
-      alert("Wishlist Updated! ❤️");
+      enqueueSnackbar("Wishlist updated!❤️", { variant: 'success' });
     } catch (error) {
       console.error("Wishlist Error:", error);
     }

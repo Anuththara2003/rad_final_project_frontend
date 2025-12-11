@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useSnackbar } from 'notistack';
 
 const GiftQuiz = () => {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
+      const { enqueueSnackbar } = useSnackbar();
   
   const [answers, setAnswers] = useState({
     relationship: '',

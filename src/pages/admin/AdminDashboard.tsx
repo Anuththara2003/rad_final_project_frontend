@@ -7,6 +7,7 @@ import {
   getDashboardStats, 
   updateOrderStatus
 } from '../../services/adminService';
+import { useSnackbar } from 'notistack'
 
 
 interface Product { _id: string; name: string; category: string; price: number; tags: string[]; stock: number; image: string; }
@@ -34,6 +35,8 @@ const AdminDashboard = () => {
     name: '', category: '', price: '', tags: '', stock: '', image: ''
   });
 
+  const { enqueueSnackbar } = useSnackbar();
+
   // ================= DATA FETCHING =================
   const fetchProducts = async () => { try { const res = await getAllProducts(); setProducts(res.data); } catch (e) { console.error(e); } };
   const fetchOrders = async () => { try { const res = await getAllOrders(); setOrders(res.data); } catch (e) { console.error(e); } };
@@ -54,8 +57,14 @@ const AdminDashboard = () => {
     const payload = { ...formData, price: Number(formData.price), stock: Number(formData.stock), tags: formattedTags };
 
     try {
-      if (editingId) { await updateProduct(editingId, payload); alert("Product Updated! 🔄"); } 
-      else { await createProduct(payload); alert("Product Added! 🎉"); }
+      if (editingId) { await updateProduct(editingId, payload); 
+        enqueueSnackbar("Product Updated! 🔄", { variant: 'success' });
+
+       } 
+      else { await createProduct(payload); 
+        enqueueSnackbar("Product Added! 🎉", { variant: 'success' });
+
+       }
       closeModal(); fetchProducts();
     } catch (error) { console.error("Product Error:", error); }
   };
@@ -80,7 +89,7 @@ const AdminDashboard = () => {
   const handleUpdateOrderStatus = async (id: string, newStatus: string) => {
     try {
       await updateOrderStatus(id, newStatus);
-      alert("Order Status Updated!"); 
+      enqueueSnackbar("Order Place Successful! 🎉", { variant: 'success' });
       fetchOrders(); 
       setSelectedOrder(null);
     } catch (error) { console.error(error); }

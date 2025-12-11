@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/authContex';
 import { getWishList, toggleWishListItem } from '../../services/user';
+import { useSnackbar } from 'notistack'
+
 
 interface Product {
   _id: string;
@@ -17,6 +19,7 @@ const MyWishList = () => {
   const { user, loading: authLoading } = useAuth();
   const [wishlist, setWishlist] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+    const { enqueueSnackbar } = useSnackbar();
 
   useEffect(() => {
    
@@ -76,7 +79,7 @@ const MyWishList = () => {
     const existingItem = existingCart.find((item: any) => item._id === product._id);
 
     if (existingItem) {
-      alert("Item already in Cart! 🛒");
+      enqueueSnackbar("Item already in cart! 🛒", { variant: "info" });
     } else {
       existingCart.push({ ...product, quantity: 1 });
       localStorage.setItem(cartKey, JSON.stringify(existingCart));

@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { getAllProducts } from '../../services/productService';
 import { toggleWishListItem } from '../../services/user';
 import { useAuth } from '../../context/authContex'; 
+import { useSnackbar } from 'notistack'
 
 const ProductDetails = () => {
   const { id } = useParams();
@@ -11,6 +12,7 @@ const ProductDetails = () => {
   
   const [product, setProduct] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const { enqueueSnackbar } = useSnackbar();
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -38,7 +40,7 @@ const ProductDetails = () => {
     const existingItem = existingCart.find((item: any) => item._id === product._id);
 
     if (existingItem) {
-      alert("Item already in Cart! 🛒");
+      enqueueSnackbar("Item already in Cart!🛒", { variant: 'info' });
     } else {
       existingCart.push({ ...product, quantity: 1 });
       
@@ -57,7 +59,7 @@ const ProductDetails = () => {
     if (!user || !user.email) return alert("Please login first!");
     try {
       await toggleWishListItem(user.email, product._id);
-      alert("Wishlist Updated! ❤️");
+      enqueueSnackbar("Wishlist updated!❤️", { variant: 'success' });
     } catch (error) {
       console.error(error);
     }

@@ -27,3 +27,7 @@ export const refreshTokens = async (refreshToken: string) => {
 export const googleAuth = async (credential: string) => {
     return await api.post('/auth/google', { token: credential });
 };
+
+export const forgotPassword = async (email: string) => {
+    return await api.post('/auth/forgot-password', { email });
+};

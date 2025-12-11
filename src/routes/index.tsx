@@ -12,6 +12,8 @@ import MyWishList from '../pages/user/MyWishList';
 import { useAuth } from '../context/authContex';
 import { Suspense, type ReactNode } from 'react';
 import Layouts from '../layouts/Layouts';
+import ForgotPassword from '../pages/ForgotPassword';
+
 
 
 type RequireAuthType = { children: ReactNode, role?: string[] }
@@ -73,6 +75,7 @@ function index() {
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
 
           {/* User Routes */}
           <Route element={<RequireAuth><Layouts/></RequireAuth>}>

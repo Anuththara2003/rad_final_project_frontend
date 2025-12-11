@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { placeOrder } from '../../services/order';
 import { useAuth } from '../../context/authContex'; 
+import { useSnackbar } from 'notistack'
+
 interface CartItem {
   _id: string;
   name: string;
@@ -19,6 +21,7 @@ const Cart = () => {
   
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
+      const { enqueueSnackbar } = useSnackbar();
 
   useEffect(() => {
    
@@ -78,8 +81,8 @@ const Cart = () => {
   };
 
   const handleCheckout = async () => {
-    if (!user?.email) return alert("Please login to place an order!");
-    if (selectedItems.length === 0) return alert("Please select at least one item to order!");
+    if (!user?.email) return enqueueSnackbar("User not authenticated", { variant: "error" });
+    if (selectedItems.length === 0) return enqueueSnackbar("No items selected for checkout", { variant: "warning" });
 
     const orderData = {
       customerName: user.username,
@@ -100,7 +103,7 @@ const Cart = () => {
       const res = await placeOrder(orderData);
 
       if (res.status === 200 || res.status === 201) {
-        alert("Order Placed Successfully! 🎉");
+        enqueueSnackbar("Order placed successfully!👌😍", { variant: "success" });
         
 
         const remainingItems = cartItems.filter(item => !item.isSelected);
@@ -114,7 +117,7 @@ const Cart = () => {
       }
     } catch (error) {
       console.error("Checkout Error:", error);
-      alert("Failed to place order.");
+      enqueueSnackbar("Failed to place order. Please try again.😒", { variant: "error" });
     }
   };
 

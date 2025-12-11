@@ -4,6 +4,7 @@ import { registerUser, googleAuth } from '../services/auth';
 import { GoogleLogin } from '@react-oauth/google'; 
 import { getMyDetails } from '../services/user';
 import { useAuth } from '../context/authContex';
+import { useSnackbar } from 'notistack'
 
 
 const Signup = () => {
@@ -12,13 +13,14 @@ const Signup = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
+  const { enqueueSnackbar } = useSnackbar();
 
   
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       await registerUser({ username, email, password });
-      alert("Registration Successful! Please Login.");
+      enqueueSnackbar("Registration Successful! Please Login. 🎉", { variant: 'success' });
       navigate('/login');
     } catch (error: any) {
       console.error("Signup Error:", error);
@@ -47,7 +49,7 @@ const Signup = () => {
                     console.log(user);
         
 
-        alert("Google Login Successful! 🎉");
+        enqueueSnackbar("Login Successful! 🎉", { variant: 'success' });
         
         
         if (res.data.role == 'ADMIN') {
@@ -58,7 +60,7 @@ const Signup = () => {
       }
     } catch (error) {
       console.error("Google Auth Failed:", error);
-      alert("Google Sign-In Failed");
+      enqueueSnackbar("Google Login Failed", { variant: 'error' });
     }
   };
 
@@ -125,7 +127,7 @@ const Signup = () => {
                 onSuccess={handleGoogleSuccess}
                 onError={() => {
                     console.log('Login Failed');
-                    alert("Google Login Failed");
+                    enqueueSnackbar("Google Login Failed", { variant: 'error' });
                 }}
                 shape="circle"
                 theme="outline"

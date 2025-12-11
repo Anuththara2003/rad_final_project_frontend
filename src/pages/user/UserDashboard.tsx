@@ -4,6 +4,7 @@ import { getWishList } from '../../services/user';
 import { useAuth } from '../../context/authContex';
 import { getUserOrdersByEmail } from '../../services/adminService';
 
+
 // Types
 interface Order {
   _id: string;
@@ -28,6 +29,7 @@ const UserDashboard = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [wishlist, setWishlist] = useState<Product[]>([]);
   const [cartCount, setCartCount] = useState(0);
+  
 
   // --- NEW: Tab State ---
   const [orderTab, setOrderTab] = useState<'active' | 'history'>('active');
