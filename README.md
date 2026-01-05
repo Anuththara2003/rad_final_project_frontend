@@ -3,7 +3,7 @@ A modern, intelligent e-commerce platform built with React, TypeScript, and Tail
 
 ## 🚀 Live Demo
 - **Frontend URL:** [Link to your Vercel/Netlify Deployment]
-- **Backend Repository:** [Link to your Backend GitHub Repo]
+- **Backend Repository:** [[Link to your Backend GitHub Repo](https://github.com/Anuththara2003/rad_final_project_backend)]
 
 ---
 
@@ -86,28 +86,28 @@ VITE_GOOGLE_CLIENT_ID=your_google_client_id_here
 ## 💻 Setup & Installation
 
 1.  *Clone the repository*
-    bash
-    git clone https://github.com/Lahiru075/AI-travel-planner-fe.git
+  ```  bash
+    git clone https://github.com/Anuththara2003/giftify-frontend.git
     cd your-frontend-repo
     
-
+```
 2.  *Install Dependencies*
-    bash
+  ```  bash
     npm install
-    
+  ```
 
 3.  *Run the Development Server*
-    bash
+  ```  bash
     npm run dev
-    
+```    
 
 4.  *Build for Production*
-    bash
+ ```   bash
     npm run build
-    
+  ```  
 
 ## 📂 Project Structure
-
+```
 bash
 src/
 ├── assets/         # Images and static files
@@ -118,7 +118,7 @@ src/
 ├── service/        # API service functions (Axios calls to Backend)
 ├── App.tsx         # Root component
 └── main.tsx        # Entry point
-
+```
 
 ## 👨‍💻 Author
 
