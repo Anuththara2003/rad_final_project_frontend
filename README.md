@@ -75,18 +75,51 @@ A modern, intelligent e-commerce platform built with React, TypeScript, and Tail
 ![Login Page](./public/Login.png)
 
 ---
-
 ## ⚙️ Environment Variables
 
-Create a `.env` file in the root directory and add the following:
+Create a .env file in the root directory and add the following:
 
-```env
-# Google Authentication
+env
 VITE_GOOGLE_CLIENT_ID=your_google_client_id_here
 
 
-💻 Setup & Installation
-1. Clone the repository
+## 💻 Setup & Installation
 
-git clone https://github.com/yourusername/giftify-frontend.git
-cd giftify-frontend
+1.  *Clone the repository*
+    bash
+    git clone https://github.com/Lahiru075/AI-travel-planner-fe.git
+    cd your-frontend-repo
+    
+
+2.  *Install Dependencies*
+    bash
+    npm install
+    
+
+3.  *Run the Development Server*
+    bash
+    npm run dev
+    
+
+4.  *Build for Production*
+    bash
+    npm run build
+    
+
+## 📂 Project Structure
+
+bash
+src/
+├── assets/         # Images and static files
+├── components/     # Reusable UI components (Navbar, TripCard, Map, etc.)
+├── context/        # Auth Context for global state management
+├── pages/          # Main application pages (Home, Dashboard, CreateTrip, Admin)
+├── routes/         # App navigation & protected route logic (index.tsx)
+├── service/        # API service functions (Axios calls to Backend)
+├── App.tsx         # Root component
+└── main.tsx        # Entry point
+
+
+## 👨‍💻 Author
+
+*   *Sandaru Perera* - [GitHub Profile](https://github.com/Anuththara2003)
